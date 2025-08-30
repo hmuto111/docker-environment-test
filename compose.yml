@@ -1,0 +1,10 @@
+services:
+  frontend:
+    build: 
+      context: .
+      dockerfile: ./dockerfiles/react/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./react-test-app:/app
+      - /app/node_modules
