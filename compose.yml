@@ -21,8 +21,8 @@ services:
     environment:
       - SPRING_DEVTOOLS_REMOTE_SECRET=secret
       - SPRING_OUTPUT_ANSI_ENABLED=ALWAYS
-    # depends_on:
-    #   - db
+    depends_on:
+      - mysql
     restart: "no"
 
   backend-watcher:
@@ -37,3 +37,26 @@ services:
     restart: "no"
     depends_on:
       - backend
+
+  mysql:
+    image: mysql:8.4.6
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test
+      TZ: "Asia/Tokyo"
+    volumes:
+        -  mysql-data:/var/lib/mysql
+        -  ./dockerfiles/db-mysql:/docker-entrypoint-initdb.d 
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost"]
+      timeout: 20s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql-data:
