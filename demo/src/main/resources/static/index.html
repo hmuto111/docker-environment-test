@@ -1,10 +1,364 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<meta charset="utf-8">
-	<title>テスト</title>
-</head>
-<body>
-	<h1>Hello Woraaldあaaa:あ</h1>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>ユーザー管理システム</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      h1,
+      h2 {
+        color: #333;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="email"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      button.delete {
+        background-color: #dc3545;
+      }
+      button.delete:hover {
+        background-color: #c82333;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      .error {
+        color: #dc3545;
+        margin-top: 10px;
+      }
+      .success {
+        color: #28a745;
+        margin-top: 10px;
+      }
+      .search-container {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ユーザー管理システム</h1>
+
+    <!-- ユーザー作成フォーム -->
+    <div class="container">
+      <h2>新規ユーザー作成</h2>
+      <div class="form-group">
+        <label for="createName">名前:</label>
+        <input
+          type="text"
+          id="createName"
+          placeholder="名前を入力してください"
+        />
+      </div>
+      <div class="form-group">
+        <label for="createEmail">メールアドレス:</label>
+        <input
+          type="email"
+          id="createEmail"
+          placeholder="メールアドレスを入力してください"
+        />
+      </div>
+      <button onclick="createUser()">ユーザー作成</button>
+      <div id="createMessage"></div>
+    </div>
+
+    <!-- 検索フォーム -->
+    <div class="container">
+      <h2>ユーザー検索</h2>
+      <div class="search-container">
+        <div class="form-group">
+          <label for="searchName">名前で検索:</label>
+          <input type="text" id="searchName" placeholder="検索する名前を入力" />
+        </div>
+        <button onclick="searchUsers()">検索</button>
+        <button onclick="getAllUsers()">全ユーザー表示</button>
+      </div>
+    </div>
+
+    <!-- ユーザー一覧テーブル -->
+    <div class="container">
+      <h2>ユーザー一覧</h2>
+      <table id="usersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名前</th>
+            <th>メールアドレス</th>
+            <th>作成日時</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 編集モーダル（簡易版） -->
+    <div id="editModal" class="container" style="display: none">
+      <h2>ユーザー編集</h2>
+      <input type="hidden" id="editUserId" />
+      <div class="form-group">
+        <label for="editName">名前:</label>
+        <input type="text" id="editName" />
+      </div>
+      <div class="form-group">
+        <label for="editEmail">メールアドレス:</label>
+        <input type="email" id="editEmail" />
+      </div>
+      <button onclick="updateUser()">更新</button>
+      <button onclick="cancelEdit()">キャンセル</button>
+      <div id="editMessage"></div>
+    </div>
+
+    <script>
+      // ページ読み込み時にユーザー一覧を取得
+      document.addEventListener("DOMContentLoaded", function () {
+        getAllUsers();
+      });
+
+      // 全ユーザー取得
+      async function getAllUsers() {
+        try {
+          const response = await fetch("/api/users");
+          const users = await response.json();
+          displayUsers(users);
+        } catch (error) {
+          console.error("Error:", error);
+          showMessage("usersTable", "ユーザー取得に失敗しました", "error");
+        }
+      }
+
+      // ユーザー作成
+      async function createUser() {
+        const name = document.getElementById("createName").value;
+        const email = document.getElementById("createEmail").value;
+
+        if (!name || !email) {
+          showMessage(
+            "createMessage",
+            "名前とメールアドレスを入力してください",
+            "error"
+          );
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/users", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: name, email: email }),
+          });
+
+          if (response.ok) {
+            const user = await response.json();
+            showMessage("createMessage", "ユーザーが作成されました", "success");
+            document.getElementById("createName").value = "";
+            document.getElementById("createEmail").value = "";
+            getAllUsers(); // 一覧を更新
+          } else {
+            showMessage("createMessage", "ユーザー作成に失敗しました", "error");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          showMessage("createMessage", "ユーザー作成に失敗しました", "error");
+        }
+      }
+
+      // ユーザー検索
+      async function searchUsers() {
+        const name = document.getElementById("searchName").value;
+
+        if (!name) {
+          showMessage("usersTable", "検索する名前を入力してください", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `/api/users/search?name=${encodeURIComponent(name)}`
+          );
+          const users = await response.json();
+          displayUsers(users);
+        } catch (error) {
+          console.error("Error:", error);
+          showMessage("usersTable", "検索に失敗しました", "error");
+        }
+      }
+
+      // ユーザー一覧表示
+      function displayUsers(users) {
+        const tbody = document.getElementById("usersTableBody");
+        tbody.innerHTML = "";
+
+        if (users.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="5">ユーザーが見つかりませんでした</td></tr>';
+          return;
+        }
+
+        users.forEach((user) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${
+                      user.createdAt
+                        ? new Date(user.createdAt).toLocaleString("ja-JP")
+                        : "-"
+                    }</td>
+                    <td>
+                        <button onclick="editUser(${user.id}, '${
+            user.name
+          }', '${user.email}')">編集</button>
+                        <button class="delete" onclick="deleteUser(${
+                          user.id
+                        })">削除</button>
+                    </td>
+                `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // ユーザー編集フォーム表示
+      function editUser(id, name, email) {
+        document.getElementById("editUserId").value = id;
+        document.getElementById("editName").value = name;
+        document.getElementById("editEmail").value = email;
+        document.getElementById("editModal").style.display = "block";
+      }
+
+      // 編集キャンセル
+      function cancelEdit() {
+        document.getElementById("editModal").style.display = "none";
+        document.getElementById("editMessage").innerHTML = "";
+      }
+
+      // ユーザー更新
+      async function updateUser() {
+        const id = document.getElementById("editUserId").value;
+        const name = document.getElementById("editName").value;
+        const email = document.getElementById("editEmail").value;
+
+        if (!name || !email) {
+          showMessage(
+            "editMessage",
+            "名前とメールアドレスを入力してください",
+            "error"
+          );
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/users/${id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: name, email: email }),
+          });
+
+          if (response.ok) {
+            showMessage("editMessage", "ユーザーが更新されました", "success");
+            setTimeout(() => {
+              cancelEdit();
+              getAllUsers(); // 一覧を更新
+            }, 1000);
+          } else {
+            showMessage("editMessage", "ユーザー更新に失敗しました", "error");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          showMessage("editMessage", "ユーザー更新に失敗しました", "error");
+        }
+      }
+
+      // ユーザー削除
+      async function deleteUser(id) {
+        if (!confirm("このユーザーを削除しますか？")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/users/${id}`, {
+            method: "DELETE",
+          });
+
+          if (response.ok) {
+            getAllUsers(); // 一覧を更新
+          } else {
+            alert("ユーザー削除に失敗しました");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("ユーザー削除に失敗しました");
+        }
+      }
+
+      // メッセージ表示
+      function showMessage(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="${type}">${message}</div>`;
+
+        // 3秒後にメッセージを消去
+        setTimeout(() => {
+          element.innerHTML = "";
+        }, 3000);
+      }
+    </script>
+  </body>
 </html>

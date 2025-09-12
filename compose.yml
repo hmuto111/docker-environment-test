@@ -1,6 +1,6 @@
 services:
   frontend:
-    build: 
+    build:
       context: .
       dockerfile: ./dockerfiles/react/Dockerfile
     ports:
@@ -31,7 +31,12 @@ services:
       context: .
       dockerfile: ./dockerfiles/springboot/Dockerfile
     working_dir: /app
-    command: ["bash", "-c", "chmod +x /app/gradlew && /app/gradlew --no-daemon classes --continuous"]
+    command:
+      [
+        "bash",
+        "-c",
+        "chmod +x /app/gradlew && /app/gradlew --no-daemon classes --continuous",
+      ]
     volumes:
       - ./demo:/app
       - ./demo/.gradle-watcher:/app/.gradle
@@ -41,25 +46,25 @@ services:
 
   mysql:
     image: mysql:8.4.6
-    restart: always
+    restart: no
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: test
       MYSQL_USER: test_user
       MYSQL_PASSWORD: test
     volumes:
-        -  ./dockerfiles/db-mysql:/docker-entrypoint-initdb.d 
+      - ./dockerfiles/db-mysql:/docker-entrypoint-initdb.d
     ports:
       - "3307:3306"
     healthcheck:
-      test: ["CMD","mysqladmin","ping","-h","localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
       start_period: 30s
-  
+
   mongo:
     image: mongo:8.0
-    restart: always
+    restart: no
     volumes:
       - ./dockerfiles/db-mongo:/docker-entrypoint-initdb.d
     ports:
@@ -68,10 +73,10 @@ services:
       TZ: "Asia/Tokyo"
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
-  
+
   mongo-express:
     image: mongo-express
-    restart: always
+    restart: no
     ports:
       - 8081:8081
     environment:

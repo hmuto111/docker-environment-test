@@ -1,36 +1,97 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from "react";
+import type { User } from "./types/user";
+import { UserCreateForm } from "./components/user-create-form";
+import { UserSearchForm } from "./components/user-search-form";
+import { UserTable } from "./components/user-table";
+import { UserEditModal } from "./components/user-edit-modal";
+import { userService } from "./services/user-service";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const App: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 初期ロード時にユーザー一覧を取得
+  useEffect(() => {
+    loadAllUsers();
+  }, []);
+
+  const loadAllUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const usersData = await userService.getAllUsers();
+      setUsers(usersData);
+    } catch (err) {
+      setError("ユーザー取得に失敗しました");
+      console.error("Error loading users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (name: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const searchResults = await userService.searchUsersByName(name);
+      setUsers(searchResults);
+    } catch (err) {
+      setError("検索に失敗しました");
+      console.error("Error searching users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    try {
+      await userService.deleteUser(id);
+      await loadAllUsers(); // 一覧を更新
+    } catch (err) {
+      alert("ユーザー削除に失敗しました");
+      console.error("Error deleting user:", err);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingUser(null);
+  };
 
   return (
-    <>
-      <div>
-        <a href="">hahaha</a>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="App">
+      <h1>ユーザー管理システム</h1>
 
-export default App
+      <UserCreateForm onUserCreated={loadAllUsers} />
+
+      <UserSearchForm onSearch={handleSearch} onGetAllUsers={loadAllUsers} />
+
+      {loading && <div>読み込み中...</div>}
+      {error && <div className="error">{error}</div>}
+
+      <UserTable
+        users={users}
+        onEditUser={handleEditUser}
+        onDeleteUser={handleDeleteUser}
+      />
+
+      <UserEditModal
+        user={editingUser}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onUserUpdated={loadAllUsers}
+      />
+    </div>
+  );
+};
+
+export default App;
