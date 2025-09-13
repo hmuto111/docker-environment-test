@@ -1,5 +1,11 @@
 db = db.getSiblingDB('db_test_mongo');
 
+db.createUser({
+  user: "app_user",
+  pwd: "app_pass",
+  roles: [{ role: "readWrite", db: "db_test_mongo" }]
+});
+
 db.todos.insertMany([
     {
         content: '食材を買う',
